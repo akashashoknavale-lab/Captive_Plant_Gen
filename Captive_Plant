@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Solar Data</title>
+</head>
+<body>
+
+<h2>Solar Generation Data</h2>
+
+<table border="1" id="table">
+<tr><th>Date</th><th>Generation</th></tr>
+</table>
+
+<script>
+const sheetURL =
+"https://docs.google.com/spreadsheets/d/1Y3cr91xEEQj86B9hXMYdpp6UU1a33-vlrFcWKkLRujg/gviz/tq?tqx=out:csv&sheet=Sheet1";
+
+fetch(sheetURL)
+.then(res => res.text())
+.then(csv => {
+  const rows = csv.split("\n");
+  const table = document.getElementById("table");
+
+  rows.slice(1).forEach(r => {
+    const c = r.split(",");
+    table.innerHTML += `<tr><td>${c[0]}</td><td>${c[1]}</td></tr>`;
+  });
+});
+</script>
+
+</body>
+</html>
