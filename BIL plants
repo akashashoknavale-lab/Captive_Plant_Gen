@@ -1,159 +1,907 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Solar Plant Dashboard</title>
+    <!-- ================= BASIC META & TITLE ================= -->
+    <meta charset="UTF-8">
+    <title>Solar Plant Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- ================= CHART LIBRARIES ================= -->
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+    <!-- ================= LOGOUT BUTTON ================= -->
+    <button onclick="logout()" style="font-size:11px;">Logout</button>    
+    <script>
+        function logout() {
+            localStorage.removeItem("loginUser");
+            window.location.href = "login.html";
+        }
+    </script>
+    <!-- ================= STYLES ================= -->
+    <style>
+            .company-title {
+            text-align: center;
+            font-size: 20px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin: 4px 0 6px 0;
+            background: white;
+            padding: 6px;
+            border-radius: 6px;
+        }
+    body {
+            font-family: Arial, sans-serif;
+            background: #f2f2f2;
+            padding: 1px;
+        }
+            
+        h2 {
+            text-align: left;
+            margin-bottom: 1px;
+        }
 
-<style>
-body {
-  font-family: Arial;
-  background:#f4f6f8;
-  margin:0;
-  padding:20px;
-}
-h1 {
-  text-align:center;
-  color:green;
-}
-.filters {
-  display:flex;
-  gap:20px;
-  justify-content:center;
-  margin-bottom:20px;
-}
-select {
-  width:220px;
-  height:120px;
-}
-.cards {
-  display:grid;
-  grid-template-columns: repeat(4,1fr);
-  gap:15px;
-  margin-bottom:20px;
-}
-.card {
-  background:white;
-  padding:15px;
-  border-radius:8px;
-  text-align:center;
-  box-shadow:0 2px 5px rgba(0,0,0,0.1);
-}
-.charts {
-  display:grid;
-  grid-template-columns: 1fr 1fr;
-  gap:20px;
-}
-canvas {
-  background:white;
-  padding:10px;
-  border-radius:8px;
-}
-</style>
-</head>
+        .filters {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 1px;
+        }
+        <br>
+            <button onclick="openInverterPage()" style="padding:8px 16px; cursor:pointer;">
+              View Inverter Data
+            </button>
+
+        .dropdown {
+            position: relative;
+        }
+
+        .dropdown button {
+            padding: 3px 6px;
+            border: 1px solid #999;
+            background: white;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            background: white;
+            border: 1px solid #ccc;
+            max-height: 300px;
+            overflow-y: auto;
+            padding: 8px;
+            z-index: 10;
+            width: 200px;
+        }
+
+        .dropdown:hover .dropdown-content {
+            display: block;
+        }
+
+        .dropdown-content label {
+            display: block;
+            font-size: 12px;
+            margin-bottom: 2px;
+        }
+
+        .action-btn {
+            font-size: 12px;
+            margin-bottom: 2px;
+            width: 48%;
+            cursor: pointer;
+        }
+
+        .top-container {
+         display: flex;
+         font-size: 14px;      /* 🔽 reduce more if needed: 9px / 8px */
+         justify-content: space-between;
+         gap: 15px;
+         margin-bottom: 20px;
+        }
+
+        .comparison-container {
+         display: flex;
+         flex-wrap: wrap;
+         column-gap: 5px;
+         /* horizontal space between tables */
+         row-gap: 20px;
+         /* vertical space between rows of tables (reduced) */
+         width: 35%;
+        }
+
+        .chart-container {
+         display: flex;
+         flex-direction: column;
+         gap: 5px;
+        }
+
+        .chart-row {
+         display: flex;
+         gap: 10px;
+        }
+
+        canvas {
+        background: white;
+        padding: 5px;
+        border-radius: 10px;
+        }
+
+        .comparison-table {
+        width: 120px;
+        border-collapse: collapse;
+        background: white;
+        }
+
+        .comparison-table th,
+        .comparison-table td {
+        border: 1px solid #ccc;
+        padding: 4px;
+        text-align: center;
+        font-size: 10px;
+        }
+
+        .comparison-table th {
+        background: #34495e;
+        color: white;
+        }
+
+        .diff-positive {
+        background: #c8e6c9;
+        color: #256029;
+        }
+
+        .diff-negative {
+        background: #ffcccc;
+        color: #a50000;
+        }
+
+        .table-wrapper {
+        max-height: 400px;
+        overflow-y: auto;
+        background: white;
+        }
+
+        .data-table {
+        width: 100%;
+        border-collapse: collapse;
+        }
+
+        .data-table th,
+        .data-table td {
+        border: 1px solid #ccc;
+        padding: 6px;
+        font-size: 10px;
+        text-align: center;
+        }
+
+        .data-table th {
+         background: #34495e;
+         color: white;
+         position: sticky;
+         top: 0;
+        }
+
+        /* Monthly summary column width control */
+        .monthly-summary-table th,
+        .monthly-summary-table td {
+         min-width: 120px;
+        /* increase/decrease as needed */
+         white-space: nowrap;
+        }
+
+        /* Individual column control */
+        .monthly-summary-table th:nth-child(1),
+        .monthly-summary-table td:nth-child(1) {
+         min-width: 80px;
+         /* Month */
+        }
+
+        .monthly-summary-table th:nth-child(2),
+        .monthly-summary-table td:nth-child(2) {
+         min-width: 150px;
+        /* Total Generation */
+        }
+
+        .monthly-summary-table th:nth-child(3),
+        .monthly-summary-table td:nth-child(3) {
+         min-width: 120px;
+         /* Avg PR */
+        }
+
+        .monthly-summary-table th:nth-child(4),
+        .monthly-summary-table td:nth-child(4) {
+         min-width: 180px;
+         /* Energy Availability */
+        }
+
+        .monthly-summary-table th:nth-child(5),
+        .monthly-summary-table td:nth-child(5) {
+        min-width: 120px;
+            /* Avg CUF */
+        }
+        /* Limit big data table to first 18 columns only */
+        .data-table th:nth-child(n+19),
+        .data-table td:nth-child(n+19) {
+        display: none;
+        }
+    </style>
+    </head>
 
 <body>
+    <h1 class="company-title">
+        BHAGERIA GREEN ENERGY SOLUTIONS PRIVATE LIMITED
+    </h1>
+    <h2>☀️ Captive Plant Solar Park 1 & 2</h2>
 
-<h1>Bhageria GM Plants Generation Dashboard</h1>
+    <div class="filters">
+        <div class="dropdown">
+            <button>Select Plant</button>
+            <div class="dropdown-content" id="plantFilter">
+                <button class="action-btn" onclick="selectAll('plant')">Select All</button>
+                <button class="action-btn" onclick="deselectAll('plant')">Deselect All</button>
+            </div>
+        </div>
 
-<div class="filters">
-  <div>
-    <b>Select Plant</b><br>
-    <select id="plantSelect" multiple></select>
-  </div>
-  <div>
-    <b>Select Month</b><br>
-    <select id="monthSelect" multiple></select>
-  </div>
-</div>
+        <div class="dropdown">
+            <button>Select Month</button>
+            <div class="dropdown-content" id="monthFilter">
+                <button class="action-btn" onclick="selectAll('month')">Select All</button>
+                <button class="action-btn" onclick="deselectAll('month')">Deselect All</button>
+            </div>
+        </div>
+    </div>
 
-<div class="cards">
-  <div class="card"><h3>Total Generation</h3><div id="gen">0</div></div>
-  <div class="card"><h3>Avg PR %</h3><div id="pr">0</div></div>
-  <div class="card"><h3>Avg CUF %</h3><div id="cuf">0</div></div>
-  <div class="card"><h3>Plant Availability</h3><div id="avail">0</div></div>
-</div>
+    <div class="top-container">
 
-<div class="charts">
-  <canvas id="genChart"></canvas>
-  <canvas id="prChart"></canvas>
-</div>
+        <div class="comparison-container">
 
-<script>
-const csvUrl = "PASTE_CSV_LINK_HERE";
+            <div>
+                <h4 style="text-align:center;color:red;">Total Generation</h4>
+                <table class="comparison-table">
+                    <tr>
+                        <th>Actual</th>
+                        <th>Expected</th>
+                        <th>Diff</th>
+                    </tr>
+                    <tr>
+                        <td id="genActual">0</td>
+                        <td id="genExpected">0</td>
+                        <td id="genDiff">0%</td>
+                    </tr>
+                </table>
+            </div>
 
-let rawData = [];
-let genChart, prChart;
+            <div>
+                <h4 style="text-align:center;color:purple;">Total IR</h4>
+                <table class="comparison-table">
+                    <tr>
+                        <th>Actual</th>
+                        <th>Expected</th>
+                        <th>Diff</th>
+                    </tr>
+                    <tr>
+                        <td id="irActual">0</td>
+                        <td id="irExpected">0</td>
+                        <td id="irDiff">0%</td>
+                    </tr>
+                </table>
+            </div>
 
-Papa.parse(csvUrl, {
-  download: true,
-  header: true,
-  complete: res => {
-    rawData = res.data;
-    populateFilters();
-    updateDashboard();
-  }
-});
+            <div>
+                <h4 style="text-align:center;color:green;">Exp Gen diff with Actual IR</h4>
+                <table class="comparison-table">
+                    <tr>
+                        <th>Actual</th>
+                        <th>Expected</th>
+                        <th>Diff</th>
+                    </tr>
+                    <tr>
+                        <td id="expIRActual">0</td>
+                        <td id="expIRExpected">0</td>
+                        <td id="expIRDiff">0%</td>
+                    </tr>
+                </table>
+            </div>
 
-function populateFilters() {
-  const plantSet = [...new Set(rawData.map(r => r["Site Name"]))];
-  const monthSet = [...new Set(rawData.map(r => r["Month"]))];
+            <div>
+                <h4 style="text-align:center;color:#e74c3c;">Avg PR%</h4>
+                <table class="comparison-table">
+                    <tr>
+                        <th>Actual</th>
+                        <th>Expected</th>
+                    </tr>
+                    <tr>
+                        <td id="prActual">0%</td>
+                        <td id="prExpected">0%</td>
+                    </tr>
+                </table>
+            </div>
 
-  const plantSel = document.getElementById("plantSelect");
-  const monthSel = document.getElementById("monthSelect");
+            <div>
+                <h4 style="text-align:center;color:#2980b9;">Avg CUF%</h4>
+                <table class="comparison-table">
+                    <tr>
+                        <th>Actual</th>
+                        <th>Expected</th>
+                    </tr>
+                    <tr>
+                        <td id="cufActual">0%</td>
+                        <td id="cufExpected">0%</td>
+                    </tr>
+                </table>
+            </div>
+            <div>
+                <h4 style="text-align:center;color:#2c3e50;">Plant Availability</h4>
+                <table class="comparison-table">
+                    <tr>
+                        <th>Availability</th>
+                    </tr>
+                    <tr>
+                        <td id="plantAvail">0%</td>
+                    </tr>
+                </table>
+            </div>
 
-  plantSet.forEach(p => plantSel.innerHTML += `<option selected>${p}</option>`);
-  monthSet.forEach(m => monthSel.innerHTML += `<option selected>${m}</option>`);
+            <div>
+                <h4 style="text-align:center;color:red;">Grid Availability</h4>
+                <table class="comparison-table">
+                    <tr>
+                        <th>Availability</th>
+                    </tr>
+                    <tr>
+                        <td id="gridAvail">0%</td>
+                    </tr>
+                </table>
+            </div>
 
-  plantSel.onchange = monthSel.onchange = updateDashboard;
-}
+            <div>
+                <h4 style="text-align:center;color:#ff5722;">Monthly Summary</h4>
+                <table class="comparison-table monthly-summary-table" id="monthlySummaryTable">
+                    <thead>
+                        <tr>
+                            <th>Month</th>
+                            <th>Total Generation (KWh)</th>
+                            <th>Average PR%</th>
+                            <th>Energy Availability vs Expected</th>
+                            <th>Average CUF%</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
 
-function updateDashboard() {
-  const plants = [...plantSelect.selectedOptions].map(o=>o.value);
-  const months = [...monthSelect.selectedOptions].map(o=>o.value);
 
-  const filtered = rawData.filter(r =>
-    plants.includes(r["Site Name"]) &&
-    months.includes(r["Month"])
-  );
 
-  let totalGen = 0, totalPR = 0, totalCUF = 0;
+        </div>
 
-  filtered.forEach(r=>{
-    totalGen += Number(r["Actual Gen"]||0);
-    totalPR += Number(r["PR"]||0);
-    totalCUF += Number(r["CUF"]||0);
-  });
+        <div class="chart-container">
+            <div class="chart-row">
+                <canvas id="barChart" width="400" height="250"></canvas>
+                <canvas id="pieChart1" width="400" height="250"></canvas>
+            </div>
+            <div class="chart-row">
+                <canvas id="pieChart2" width="400" height="250"></canvas>
+                <canvas id="pieChart3" width="400" height="250"></canvas>
+            </div>
+        </div>
 
-  document.getElementById("gen").innerText = totalGen.toLocaleString();
-  document.getElementById("pr").innerText = (totalPR/filtered.length || 0).toFixed(2)+"%";
-  document.getElementById("cuf").innerText = (totalCUF/filtered.length || 0).toFixed(2)+"%";
-  document.getElementById("avail").innerText = "98%";
+    </div>
 
-  drawCharts(filtered);
-}
+    <div class="table-wrapper">
+        <table class="data-table" id="dataTable">
+            <thead></thead>
+            <tbody></tbody>
+        </table>
+    </div>
 
-function drawCharts(data) {
-  const labels = data.map(r=>r.Month);
-  const genData = data.map(r=>Number(r["Actual Gen"]||0));
-  const prData = data.map(r=>Number(r["PR"]||0));
+    <script>
+        const loginUser = JSON.parse(localStorage.getItem("loginUser"));
 
-  if(genChart) genChart.destroy();
-  if(prChart) prChart.destroy();
+        function openInverterPage(){
+          window.location.href = "inverter.html"; // your new HTML file
+        }
+    
+        if (!loginUser) {
+            window.location.href = "login.html";
+        }
 
-  genChart = new Chart(document.getElementById("genChart"), {
-    type:'bar',
-    data:{labels,datasets:[{label:'Generation (kWh)',data:genData}]}
-  });
+        
+        const SHEET_ID = "1Y3cr91xEEQj86B9hXMYdpp6UU1a33-vlrFcWKkLRujg";
+        const GID = "0";
+        
+        const PLANT_COL = 0;
+        const MONTH_COL = 1;
+        const ACTUAL_COL = 3;
+        const EXPECTED_COL = 4;
+        const IR_ACTUAL_COL = 5;
+        const IR_EXPECTED_COL = 6;
+        const PR_ACTUAL_COL = 7;
+        const PR_EXPECTED_COL = 8;
+        const CUF_ACTUAL_COL = 10;
+        const CUF_EXPECTED_COL = 11;
+        const PLANT_AVAIL_COL = 13;
+        const GRID_AVAIL_COL = 14;
 
-  prChart = new Chart(document.getElementById("prChart"), {
-    type:'pie',
-    data:{labels,datasets:[{data:prData}]}
-  });
-}
-</script>
+        let allData = [];
+        let selectedPlants = new Set();
+        let selectedMonths = new Set();
+
+        let barChartObj, pieChart1Obj, pieChart2Obj, pieChart3Obj;
+
+        fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${GID}`)
+            .then(r => r.text())
+            .then(csv => {
+                const rows = csv.split("\n").map(r => r.split(",").map(c => c.replace(/"/g, "").trim()));
+                const headers = rows.shift();
+                allData = rows;
+                document.querySelector("#dataTable thead").innerHTML =
+                    "<tr>" + headers.map(h => `<th>${h}</th>`).join("") + "</tr>";
+                createFilters();
+                updateView();
+            });
+
+         function createFilters() {
+            let allowedPlants = new Set();
+        
+            // 🔑 Clear old selections
+            selectedPlants.clear();
+            selectedMonths.clear();
+        
+            // ADMIN → all plants
+            if (loginUser.role === "admin" || loginUser.plants === "ALL") {
+                allData.forEach(r => allowedPlants.add(r[PLANT_COL]));
+            }
+            // CUSTOMER → only assigned plants
+            else {
+                loginUser.plants
+                    .split(",")
+                    .map(p => p.trim())
+                    .forEach(p => allowedPlants.add(p));
+            }
+        
+            // ✅ Create plant checkboxes ONLY for allowed plants
+            allowedPlants.forEach(p => {
+                addCheckbox("plantFilter", p, selectedPlants);
+            });
+        
+            // ✅ Months (same for all users)
+            [...new Set(allData.map(r => r[MONTH_COL]))]
+                .forEach(m => addCheckbox("monthFilter", m, selectedMonths));
+        }
+
+
+
+        function addCheckbox(id, val, set) {
+            const l = document.createElement("label");
+            const c = document.createElement("input");
+            c.type = "checkbox";
+            c.checked = true;
+            set.add(val);
+            c.onchange = () => {
+                c.checked ? set.add(val) : set.delete(val);
+                updateView();
+            };
+            l.appendChild(c);
+            l.append(" " + val);
+            document.getElementById(id).appendChild(l);
+        }
+
+        function selectAll(t) {
+            const s = t === "plant" ? selectedPlants : selectedMonths;
+            document.querySelectorAll(`#${t}Filter input`).forEach(c => {
+                c.checked = true;
+                s.add(c.parentNode.textContent.trim())
+            });
+            updateView();
+        }
+
+        function deselectAll(t) {
+            const s = t === "plant" ? selectedPlants : selectedMonths;
+            s.clear();
+            document.querySelectorAll(`#${t}Filter input`).forEach(c => c.checked = false);
+            updateView();
+        }
+
+        function updateView() {
+            updateTable();
+            updateComparison();
+            updateMonthlySummary(); // <-- new
+            updateChart();
+        }
+
+        function updateTable() {
+            const tb = document.querySelector("#dataTable tbody");
+            tb.innerHTML = "";
+            allData.forEach(r => {
+                if (selectedPlants.has(r[PLANT_COL]) && selectedMonths.has(r[MONTH_COL])) {
+                    const tr = document.createElement("tr");
+                    r.forEach(c => {
+                        const td = document.createElement("td");
+                        td.innerText = c;
+                        tr.appendChild(td)
+                    });
+                    tb.appendChild(tr);
+                }
+            });
+        }
+
+        function updateComparison() {
+            let ag = 0,
+                eg = 0,
+                ai = 0,
+                ei = 0,
+                prA = 0,
+                prE = 0,
+                cufA = 0,
+                cufE = 0,
+                c = 0;
+            let expIRAct = 0,
+                expIRExp = 0;
+            let plantAvailSum = 0;
+            let gridAvailSum = 0;
+
+
+            allData.forEach(r => {
+                if (selectedPlants.has(r[PLANT_COL]) && selectedMonths.has(r[MONTH_COL])) {
+                    ag += +r[ACTUAL_COL] || 0;
+                    eg += +r[EXPECTED_COL] || 0;
+                    ai += +r[IR_ACTUAL_COL] || 0;
+                    ei += +r[IR_EXPECTED_COL] || 0;
+                    prA  += parseFloat(r[PR_ACTUAL_COL]) || 0;
+                    prE  += parseFloat(r[PR_EXPECTED_COL]) || 0;
+                    cufA += parseFloat(r[CUF_ACTUAL_COL]) || 0;
+                    cufE += parseFloat(r[CUF_EXPECTED_COL]) || 0;
+                    expIRAct += +r[ACTUAL_COL] || 0;
+                    expIRExp += +r[ACTUAL_COL] * (+r[IR_EXPECTED_COL] / (+r[IR_ACTUAL_COL] || 1));
+                    plantAvailSum += +r[PLANT_AVAIL_COL] || 0;
+                    gridAvailSum += +r[GRID_AVAIL_COL] || 0;
+
+                    c++;
+                }
+            });
+            plantAvail.innerText = (plantAvailSum / c).toFixed(2) + "%";
+            gridAvail.innerText  = (gridAvailSum / c).toFixed(2) + "%";
+
+
+            genActual.innerText = Math.round(ag).toLocaleString();
+            genExpected.innerText = Math.round(eg).toLocaleString();
+            genDiff.innerText = ((ag - eg) / eg * 100).toFixed(2) + "%";
+
+            irActual.innerText = (ai / c).toFixed(2);
+            irExpected.innerText = (ei / c).toFixed(2);
+            irDiff.innerText = (((ai / c) - (ei / c)) / (ei / c) * 100).toFixed(2) + "%";
+
+            expIRActual.innerText = Math.round(expIRAct).toLocaleString();
+            expIRExpected.innerText = Math.round(expIRExp).toLocaleString();
+            expIRDiff.innerText = ((expIRAct - expIRExp) / expIRExp * 100).toFixed(2) + "%";
+
+            prActual.innerText  = c ? (prA / c).toFixed(2) + "%" : "0%";
+            prExpected.innerText = c ? (prE / c).toFixed(2) + "%" : "0%";
+            
+            cufActual.innerText  = c ? (cufA / c).toFixed(2) + "%" : "0%";
+            cufExpected.innerText = c ? (cufE / c).toFixed(2) + "%" : "0%";
+
+        }
+
+            function updateMonthlySummary() {
+                const monthData = {};
+            
+                allData.forEach(r => {
+                    if (selectedPlants.has(r[PLANT_COL]) && selectedMonths.has(r[MONTH_COL])) {
+            
+                        const month = r[MONTH_COL];
+            
+                        if (!monthData[month]) {
+                            monthData[month] = {
+                                gen: 0,
+                                pr: 0,
+                                cuf: 0,
+                                avail: 0,
+                                count: 0
+                            };
+                        }
+            
+                        monthData[month].gen += +r[ACTUAL_COL] || 0;
+                        monthData[month].pr  += parseFloat(r[PR_ACTUAL_COL]) || 0;
+                        monthData[month].cuf += parseFloat(r[CUF_ACTUAL_COL]) || 0;
+                        monthData[month].avail += +r[IR_ACTUAL_COL] || 0;
+                        monthData[month].count++;
+                    }
+                });
+            
+                const tbody = document.querySelector("#monthlySummaryTable tbody");
+                tbody.innerHTML = "";
+            
+                const monthOrder = [
+                    "Apr-25","May-25","Jun-25","Jul-25","Aug-25","Sep-25",
+                    "Oct-25","Nov-25","Dec-25","Jan-26","Feb-26","Mar-26"
+                ];
+            
+                monthOrder
+                    .filter(m => monthData[m])
+                    .forEach(month => {
+            
+                        const d = monthData[month];
+            
+                        const tr = document.createElement("tr");
+                        tr.innerHTML = `
+                            <td>${month}</td>
+                            <td>${Math.round(d.gen).toLocaleString()}</td>
+                            <td>${(d.pr / d.count).toFixed(2)}%</td>
+                            <td>${(d.avail / d.count).toFixed(2)}%</td>
+                            <td>${(d.cuf / d.count).toFixed(2)}%</td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+            }
+
+        function updateChart() {
+                
+                    const m = {};
+                    const pieGen = {};
+                    const expectedGen = {};
+                
+                    // 🔹 For average PR
+                    const piePRSum = {};
+                    const piePRCount = {};
+                
+                    // 🔹 For average CUF
+                    const pieCUFSum = {};
+                    const pieCUFCount = {};
+                
+                    allData.forEach(r => {
+                        if (selectedPlants.has(r[PLANT_COL]) && selectedMonths.has(r[MONTH_COL])) {
+                
+                            const month = r[MONTH_COL];
+                
+                            // ---- Bar chart (actual and exprected Generation MWh) ----
+                            m[month] = (m[month] || 0) + (+r[ACTUAL_COL] / 1000);
+                            expectedGen[month] = (expectedGen[month] || 0) + (+r[EXPECTED_COL] / 1000);
+                
+                            // ---- Pie 1 (Generation) ----
+                            pieGen[month] = (pieGen[month] || 0) + (+r[ACTUAL_COL]);
+                
+                            // ---- PR (Average month-wise) ----
+                            piePRSum[month] = (piePRSum[month] || 0) + (parseFloat(r[PR_ACTUAL_COL]) || 0);
+                            piePRCount[month] = (piePRCount[month] || 0) + 1;
+                
+                            // ---- CUF (Average month-wise) ----
+                            pieCUFSum[month] = (pieCUFSum[month] || 0) + (parseFloat(r[CUF_ACTUAL_COL]) || 0);
+                            pieCUFCount[month] = (pieCUFCount[month] || 0) + 1;
+                        }
+                    });
+                
+                    // ✅ Convert sums to averages
+                    const piePR = {};
+                    Object.keys(piePRSum).forEach(m => {
+                        piePR[m] = +(piePRSum[m] / piePRCount[m]).toFixed(2);
+                    });
+                
+                    const pieCUF = {};
+                    Object.keys(pieCUFSum).forEach(m => {
+                        pieCUF[m] = +(pieCUFSum[m] / pieCUFCount[m]).toFixed(2);
+                    });
+                
+                    // 🔥 Destroy old charts
+                    if (barChartObj) barChartObj.destroy();
+                    if (pieChart1Obj) pieChart1Obj.destroy();
+                    if (pieChart2Obj) pieChart2Obj.destroy();
+                    if (pieChart3Obj) pieChart3Obj.destroy();
+                
+                    // ================= BAR CHART =================
+                        barChartObj = new Chart(barChart, {
+                            data: {
+                                labels: Object.keys(m),
+                                datasets: [
+                                    {
+                                        type: "bar",
+                                        label: "Actual Generation (MWh)",
+                                        data: Object.values(m),
+                                        backgroundColor: "#4caf50",
+                                        order: 2
+                                    },
+                                    {
+                                        type: "line",
+                                        label: "Expected Generation (MWh)",
+                                        data: Object.keys(m).map(k => expectedGen[k] || 0),
+                                        borderColor: "#e74c3c",
+                                        backgroundColor: "#e74c3c",
+                                        borderWidth: 2,
+                                        pointRadius: 5,        // 🔴 balls
+                                        pointHoverRadius: 7,
+                                        pointBackgroundColor: "#fff",
+                                        pointBorderColor: "#e74c3c",
+                                        tension: 0.3,          // smooth curve
+                                        fill: false,
+                                        order: 1
+                                    }
+                                ]
+                            },
+                            options: {
+                                responsive: false,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    legend: {
+                                        display: true
+                                    }
+                                },
+                                scales: {
+                                    y: {
+                                        beginAtZero: true,
+                                        title: {
+                                            display: true,
+                                            text: "Energy (MWh)"
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                
+                    // ================= PIE 1 : GENERATION =================
+                                // 🔢 Convert generation to % of total
+                            const totalGen = Object.values(pieGen).reduce((a, b) => a + b, 0);
+                            
+                            const pieGenPercent = {};
+                            Object.keys(pieGen).forEach(m => {
+                                pieGenPercent[m] = +((pieGen[m] / totalGen) * 100).toFixed(2);
+                            });
+                    pieChart1Obj = new Chart(pieChart1, {
+                        type: "pie",
+                        data: {
+                            labels: Object.keys(pieGenPercent),
+                            datasets: [{
+                                label: "Generation Contribution (%)",
+                                data: Object.values(pieGenPercent),
+                                backgroundColor: generateColors(Object.keys(pieGenPercent).length)
+                            }]
+                        },
+                        options: {
+                            responsive: false,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                title: {
+                                    display: true,
+                                    text: "Month-wise Generation Contribution (%)",
+                                    font: { size: 12, weight: "bold" }
+                                },
+                                legend: { display: false },
+                                    datalabels: {
+                                        color: "#fff",
+                                        font: {
+                                            size: 10,
+                                            weight: "bold"
+                                        },
+                                        anchor: "end",
+                                        align: "end",
+                                        offset: -60,
+                                        textAlign: "center",
+                                        rotation: (ctx) => {
+                                            const meta = ctx.chart.getDatasetMeta(0).data[ctx.dataIndex];
+                                            let angle = (meta.startAngle + meta.endAngle) / 2;
+                                            let deg = angle * (180 / Math.PI);
+                                    
+                                            if (deg > 90 && deg < 270) {
+                                                deg += 180;
+                                            }
+                                            return deg;
+                                        },
+                                        formatter: (value, ctx) =>
+                                            ctx.chart.data.labels[ctx.dataIndex] + "\n" + value + "%"
+                                    }     
+                            }
+                        },
+                        plugins: [ChartDataLabels]
+                    });
+                
+                    // ================= PIE 2 : AVG PR =================
+                    pieChart2Obj = new Chart(pieChart2, {
+                        type: "pie",
+                        data: {
+                            labels: Object.keys(piePR),
+                            datasets: [{
+                                label: "Average PR (%)",
+                                data: Object.values(piePR),
+                                backgroundColor: generateColors(Object.keys(piePR).length)
+                            }]
+                        },
+                        options: {
+                            responsive: false,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                title: {
+                                    display: true,
+                                    text: "Avarage PR %",
+                                    font: { size: 12, weight: "bold" },
+                                    padding: { top: 5, bottom: 5 }
+                                },
+                                legend: { display: false },
+                                    datalabels: {
+                                        color: "#fff",
+                                        font: {
+                                            size: 10,
+                                            weight: "bold"
+                                        },
+                                        anchor: "end",
+                                        align: "end",
+                                        offset: -60,
+                                        textAlign: "center",
+                                        rotation: (ctx) => {
+                                            const meta = ctx.chart.getDatasetMeta(0).data[ctx.dataIndex];
+                                            let angle = (meta.startAngle + meta.endAngle) / 2;
+                                            let deg = angle * (180 / Math.PI);
+                                    
+                                            if (deg > 90 && deg < 270) {
+                                                deg += 180;
+                                            }
+                                            return deg;
+                                        },
+                                        formatter: (value, ctx) =>
+                                            ctx.chart.data.labels[ctx.dataIndex] + "\n" + value + "%"
+                                    }
+                            }
+                        },
+                        plugins: [ChartDataLabels]
+                    });
+                
+                    // ================= PIE 3 : AVG CUF =================
+                    pieChart3Obj = new Chart(pieChart3, {
+                        type: "pie",
+                        data: {
+                            labels: Object.keys(pieCUF),
+                            datasets: [{
+                                label: "Average CUF (%)",
+                                data: Object.values(pieCUF),
+                                backgroundColor: generateColors(Object.keys(pieCUF).length)
+                            }]
+                        },
+                        options: {
+                            responsive: false,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                title: {
+                                    display: true,
+                                    text: "Avarage CUF %",
+                                    font: { size: 12, weight: "bold" },
+                                    padding: { top: 5, bottom: 5 }
+                                },
+                                legend: { display: false },
+                                        datalabels: {
+                                            color: "#fff",
+                                            font: {
+                                                size: 10,
+                                                weight: "bold"
+                                            },
+                                            anchor: "end",
+                                            align: "end",
+                                            offset: -60,
+                                            textAlign: "center",
+                                            rotation: (ctx) => {
+                                                const meta = ctx.chart.getDatasetMeta(0).data[ctx.dataIndex];
+                                                let angle = (meta.startAngle + meta.endAngle) / 2;
+                                                let deg = angle * (180 / Math.PI);
+                                        
+                                                if (deg > 90 && deg < 270) {
+                                                    deg += 180;
+                                                }
+                                                return deg;
+                                            },
+                                            formatter: (value, ctx) =>
+                                                ctx.chart.data.labels[ctx.dataIndex] + "\n" + value + "%"
+                                        }
+                            }
+                        },
+                        plugins: [ChartDataLabels]
+                    });
+                }
+
+        function generateColors(n) {
+            const colors = [];
+            const palette = ["#f39c12", "#e74c3c", "#2ecc71", "#3498db", "#9b59b6", "#1abc9c", "#e67e22", "#95a5a6"];
+            for (let i = 0; i < n; i++) colors.push(palette[i % palette.length]);
+            return colors;
+        }
+    </script>
 
 </body>
+
 </html>
