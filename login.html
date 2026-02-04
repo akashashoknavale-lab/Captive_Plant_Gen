@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Solar Dashboard Login</title>
+    <style>
+        body {
+            font-family: Arial;
+            background: #f2f2f2;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .login-box {
+            background: white;
+            padding: 25px;
+            width: 280px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px #aaa;
+        }
+        input, button {
+            width: 100%;
+            margin-top: 10px;
+            padding: 8px;
+        }
+        button {
+            background: #2ecc71;
+            border: none;
+            color: white;
+            cursor: pointer;
+        }
+        .error {
+            color: red;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="login-box">
+    <h3 align="center">☀️ Solar Dashboard</h3>
+
+    <input type="text" id="username" placeholder="Username">
+    <input type="password" id="password" placeholder="Password">
+    <button onclick="login()">Login</button>
+
+    <div class="error" id="error"></div>
+</div>
+
+<script>
+const SHEET_ID = "1Y3cr91xEEQj86B9hXMYdpp6UU1a33-vlrFcWKkLRujg";
+const USERS_GID = "1541921101"; // <-- users sheet GID
+
+function login() {
+    const u = username.value.trim();
+    const p = password.value.trim();
+
+    fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${USERS_GID}`)
+        .then(r => r.text())
+        .then(csv => {
+            const rows = csv.split("\n").map(r => r.split(",").map(c => c.replace(/"/g,"").trim()));
+            rows.shift(); // remove header
+
+            const user = rows.find(r => r[0] === u && r[1] === p);
+
+            if (!user) {
+                error.innerText = "Invalid username or password";
+                return;
+            }
+
+            const loginData = {
+                username: user[0],
+                role: user[2],
+                plants: user[3]
+            };
+
+            localStorage.setItem("loginUser", JSON.stringify(loginData));
+            window.location.href = "index.html"; // your existing page
+        });
+}
+</script>
+
+</body>
+</html>
